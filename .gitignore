@@ -39,7 +39,6 @@ venv/
 .dvc/cache
 /dvc_storage/
 /data/lending_club_accepted.csv
-models/
 
 # Other
 .DS_Store

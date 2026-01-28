@@ -3,268 +3,691 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Financial Loan Risk Assesment Tool</title>
+    <title>Financial Risk Assessor</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/style.css') }}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="container">
         <header class="main-header">
+            <div>
+                <h1>Risk Assessment</h1>
+                <p>Loan default prediction with AI insights</p>
+            </div>
             <div class="theme-switch-wrapper">
-                <label class="theme-switch" for="checkbox">
+                <label class="theme-switch">
                     <input type="checkbox" id="checkbox" />
-                    <div class="theme-slider round"></div>
+                    <span class="toggle-icon sun">&#9728;</span>
+                    <span class="toggle-icon moon">&#9790;</span>
                 </label>
             </div>
-            <h1>Financial Risk Assessor</h1>
-            <p>An interactive dashboard to predict loan default risk using an AI model with explainable insights.</p>
         </header>
 
-        <!-- Use <main> as the primary flex container for all cards -->
-        <main class="main-layout">
-            <section class="form-container card">
-                <h2>Applicant Details</h2>
-                <form id="risk-form">
-                    <div class="form-grid">
-                        <!-- All form elements remain the same -->
-                        <div class="form-group"><label for="loan_amnt">Loan Amount: $<span id="loan_amnt_val">50000</span></label><input type="range" id="loan_amnt" name="loan_amnt" min="1000" max="100000" value="50000" class="slider"></div>
-                        <div class="form-group"><label for="annual_inc">Annual Income: $<span id="annual_inc_val">80000</span></label><input type="range" id="annual_inc" name="annual_inc" min="10000" max="300000" value="80000" step="1000" class="slider"></div>
-                        <div class="form-group"><label for="int_rate">Interest Rate: <span id="int_rate_val">12.5</span>%</label><input type="range" id="int_rate" name="int_rate" min="5" max="30" value="12.5" step="0.1" class="slider"></div>
-                        <div class="form-group"><label for="dti">Debt-to-Income Ratio</label><input type="number" step="0.1" id="dti" name="dti" value="15.5" required></div>
-                        <div class="form-group"><label for="emp_length">Employment (Years)</label><input type="number" id="emp_length" name="emp_length" value="10" required></div>
-                        <div class="form-group"><label for="credit_history_length">Credit History (Years)</label><input type="number" id="credit_history_length" name="credit_history_length" value="15" required></div>
-                        <div class="form-group"><label for="term">Loan Term</label><select id="term" name="term"><option value=" 36 months">36 months</option><option value=" 60 months">60 months</option></select></div>
-                        <div class="form-group"><label for="grade">Loan Grade</label><select id="grade" name="grade"><option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="D">D</option><option value="E">E</option><option value="F">F</option><option value="G">G</option></select></div>
-                        <div class="form-group"><label for="home_ownership">Home Ownership</label><select id="home_ownership" name="home_ownership"><option value="RENT">Rent</option><option value="MORTGAGE">Mortgage</option><option value="OWN">Own</option><option value="ANY">Any</option></select></div>
-                        <div class="form-group"><label for="purpose">Loan Purpose</label><select id="purpose" name="purpose"><option value="debt_consolidation">Debt Consolidation</option><option value="credit_card">Credit Card</option><option value="home_improvement">Home Improvement</option><option value="other">Other</option></select></div>
-                    </div>
-                </form>
-            </section>
-            
-            <div id="loader" class="loader" style="display: none;"></div>
-            
-            <!-- THE FIX: The results dashboard is now a direct child of the main layout grid -->
-            <div id="results-dashboard" class="main-dashboard-grid" style="display: none;">
-                <section id="prediction-card" class="card">
-                    <h3>Predicted Risk & Factors</h3>
-                    <div class="dashboard-grid">
-                        <div class="gauge-container">
-                            <div class="gauge-wrapper"><canvas id="riskGauge"></canvas></div>
-                            <p id="recommendation" class="recommendation"></p>
+        <div class="app-layout">
+            <!-- Sidebar Navigation -->
+            <aside id="sidebar" class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#section-details" class="sidebar-nav-item active" data-section="section-details">
+                        <span class="nav-icon">&#9998;</span>
+                        <span>Details</span>
+                    </a>
+                    <a href="#section-score" class="sidebar-nav-item" data-section="section-score">
+                        <span class="nav-icon">&#9679;</span>
+                        <span>Score</span>
+                    </a>
+                    <a href="#section-compare" class="sidebar-nav-item" data-section="section-compare">
+                        <span class="nav-icon">&#9878;</span>
+                        <span>Compare</span>
+                    </a>
+                    <a href="#section-factors" class="sidebar-nav-item" data-section="section-factors">
+                        <span class="nav-icon">&#63;</span>
+                        <span>Factors</span>
+                    </a>
+                    <a href="#section-actions" class="sidebar-nav-item" data-section="section-actions">
+                        <span class="nav-icon">&#10140;</span>
+                        <span>Actions</span>
+                    </a>
+                    <a href="#section-cost" class="sidebar-nav-item" data-section="section-cost">
+                        <span class="nav-icon">&#36;</span>
+                        <span>Cost</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <section id="section-details" class="form-container card result-section">
+                    <h2>Applicant Details <span class="badge">Live Preview</span></h2>
+                    <form id="risk-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Loan Amount: <span>$<span id="loan_amnt_val">50,000</span></span></label>
+                                <input type="range" id="loan_amnt" name="loan_amnt" min="1000" max="100000" value="50000" class="slider">
+                            </div>
+                            <div class="form-group">
+                                <label>Annual Income: <span>$<span id="annual_inc_val">80,000</span></span></label>
+                                <input type="range" id="annual_inc" name="annual_inc" min="10000" max="300000" value="80000" step="1000" class="slider">
+                            </div>
+                            <div class="form-group">
+                                <label>Interest Rate: <span><span id="int_rate_val">12.5</span>%</span></label>
+                                <input type="range" id="int_rate" name="int_rate" min="5" max="30" value="12.5" step="0.1" class="slider">
+                            </div>
+                            <div class="form-group">
+                                <label>Debt-to-Income Ratio</label>
+                                <input type="number" step="0.1" id="dti" name="dti" value="15.5" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Employment (Years)</label>
+                                <input type="number" id="emp_length" name="emp_length" value="10" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Credit History (Years)</label>
+                                <input type="number" id="credit_history_length" name="credit_history_length" value="15" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Loan Term</label>
+                                <select id="term" name="term">
+                                    <option value=" 36 months">36 months</option>
+                                    <option value=" 60 months">60 months</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Loan Grade</label>
+                                <select id="grade" name="grade">
+                                    <option value="A">A</option>
+                                    <option value="B">B</option>
+                                    <option value="C">C</option>
+                                    <option value="D">D</option>
+                                    <option value="E">E</option>
+                                    <option value="F">F</option>
+                                    <option value="G">G</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Home Ownership</label>
+                                <select id="home_ownership" name="home_ownership">
+                                    <option value="RENT">Rent</option>
+                                    <option value="MORTGAGE">Mortgage</option>
+                                    <option value="OWN">Own</option>
+                                    <option value="ANY">Any</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Loan Purpose</label>
+                                <select id="purpose" name="purpose">
+                                    <option value="debt_consolidation">Debt Consolidation</option>
+                                    <option value="credit_card">Credit Card</option>
+                                    <option value="home_improvement">Home Improvement</option>
+                                    <option value="other">Other</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="explanation-container">
-                            <div id="explanation-text" class="explanation-text-list"></div>
+                    </form>
+                </section>
+
+                <div id="results-dashboard" class="results-sections">
+                    <!-- Main Grid: Score/Factors on left, Peer Comparison on right -->
+                    <div class="results-grid-main">
+                        <div class="results-left-col">
+                            <section id="section-score" class="card result-section">
+                                <h3>Risk Score</h3>
+                                <div class="score-hero">
+                                    <div class="gauge-wrapper">
+                                        <canvas id="riskGauge"></canvas>
+                                    </div>
+                                    <span id="recommendation" class="recommendation"></span>
+                                </div>
+                            </section>
+
+                            <section id="section-factors" class="card result-section">
+                                <h3>Risk Factors</h3>
+                                <p class="chart-subtitle">Key factors influencing your assessment</p>
+                                <div id="explanation-text" class="explanation-text-list"></div>
+                            </section>
                         </div>
+
+                        <section id="section-compare" class="card result-section results-right-col">
+                            <h3>Peer Comparison <span class="badge">Grade <span id="peer-grade"></span></span></h3>
+                            <p class="chart-subtitle">Your metrics vs. successful and failed loans</p>
+                            <div class="radar-chart-container">
+                                <canvas id="peerRadarChart"></canvas>
+                            </div>
+                        </section>
                     </div>
-                </section>
-                <section id="cost-analysis-card" class="card">
-                    <h3>Loan Cost Analysis</h3>
-                    <div class="cost-summary">
-                        <div><span>Total Principal</span><strong id="total-principal"></strong></div>
-                        <div><span>Total Interest Paid</span><strong id="total-interest"></strong></div>
-                        <div><span>Total Cost of Loan</span><strong id="total-cost"></strong></div>
-                    </div>
-                    <div class="amortization-table-container">
-                        <h4>Amortization Schedule (First 12 Months)</h4>
-                        <table id="amortization-table">
-                            <thead><tr><th>Month</th><th>Payment</th><th>Principal</th><th>Interest</th><th>Balance</th></tr></thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </section>
-                <section id="peer-comparison-card" class="card">
-                    <h3>Peer Group Comparison (Grade <span id="peer-grade"></span>)</h3>
-                    <p class="chart-subtitle">How your metrics compare to successful vs. failed loans in your risk bucket.</p>
-                    <div class="radar-chart-container"><canvas id="peerRadarChart"></canvas></div>
-                </section>
-                <section id="breakeven-card" class="card" style="display: none;">
-                    <h3>Breakeven Analysis</h3>
-                    <p class="chart-subtitle">Suggestions to move this application into the 'Low Risk' category.</p>
-                    <div id="breakeven-text" class="explanation-text-list"></div>
-                </section>
-            </div>
-        </main>
+
+                    <!-- Actions/Recommendations Section (full width when visible) -->
+                    <section id="section-actions" class="card result-section" style="display: none;">
+                        <h3>Recommendations</h3>
+                        <p class="chart-subtitle">How to improve your risk profile</p>
+                        <div id="breakeven-text" class="explanation-text-list"></div>
+                    </section>
+
+                    <!-- Cost Breakdown (full width) -->
+                    <section id="section-cost" class="card result-section">
+                        <h3>Cost Breakdown</h3>
+                        <div class="cost-layout">
+                            <div class="cost-summary">
+                                <div>
+                                    <span>Principal</span>
+                                    <strong id="total-principal"></strong>
+                                </div>
+                                <div>
+                                    <span>Total Interest</span>
+                                    <strong id="total-interest"></strong>
+                                </div>
+                                <div>
+                                    <span>Total Cost</span>
+                                    <strong id="total-cost"></strong>
+                                </div>
+                            </div>
+                            <div class="amortization-table-container">
+                                <table id="amortization-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Month</th>
+                                            <th>Payment</th>
+                                            <th>Principal</th>
+                                            <th>Interest</th>
+                                            <th>Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <!-- Bottom Navigation (Mobile) -->
+        <nav id="bottom-nav" class="bottom-nav" style="display: none;">
+            <a href="#section-details" class="bottom-nav-item active" data-section="section-details">
+                <span class="nav-icon">&#9998;</span>
+                <span>Details</span>
+            </a>
+            <a href="#section-score" class="bottom-nav-item" data-section="section-score">
+                <span class="nav-icon">&#9679;</span>
+                <span>Score</span>
+            </a>
+            <a href="#section-actions" class="bottom-nav-item" data-section="section-actions">
+                <span class="nav-icon">&#10140;</span>
+                <span>Actions</span>
+            </a>
+            <a href="#section-compare" class="bottom-nav-item" data-section="section-compare">
+                <span class="nav-icon">&#9878;</span>
+                <span>Compare</span>
+            </a>
+            <a href="#section-cost" class="bottom-nav-item" data-section="section-cost">
+                <span class="nav-icon">&#36;</span>
+                <span>Cost</span>
+            </a>
+        </nav>
     </div>
 
-    <!-- The JavaScript remains exactly the same as the last version. No changes needed here. -->
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // ... (All the JavaScript from the previous correct version goes here) ...
             const form = document.getElementById('risk-form');
-            const loader = document.getElementById('loader');
             const resultsDashboard = document.getElementById('results-dashboard');
+            const mainContent = document.querySelector('.main-content');
             const recommendationEl = document.getElementById('recommendation');
             const explanationTextEl = document.getElementById('explanation-text');
             const themeToggle = document.getElementById('checkbox');
-            let riskGauge, peerRadarChart;
+            const sidebar = document.getElementById('sidebar');
+            const bottomNav = document.getElementById('bottom-nav');
             let requestDebounce;
+            let lastChartData = null;
 
-            // ... THEME TOGGLE LOGIC ...
+            // Theme
             function applyTheme(theme) {
                 document.body.className = theme === 'dark' ? 'dark-mode' : '';
                 themeToggle.checked = theme === 'dark';
             }
+
             themeToggle.addEventListener('change', function() {
                 const newTheme = this.checked ? 'dark' : 'light';
                 localStorage.setItem('theme', newTheme);
                 applyTheme(newTheme);
             });
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
 
-            // ... CHARTING FUNCTIONS ...
+            applyTheme(localStorage.getItem('theme') || 'light');
+
+            // Colors
+            function getColors() {
+                const isDark = document.body.classList.contains('dark-mode');
+                return {
+                    text: isDark ? '#ececec' : '#2d2a2a',
+                    muted: isDark ? '#7a7772' : '#8b8584',
+                    grid: isDark ? '#333330' : '#e8e4df',
+                    track: isDark ? '#333330' : '#e8e4df'
+                };
+            }
+
+            // Gauge with gradient
             function createOrUpdateGauge(score) {
                 const ctx = document.getElementById('riskGauge').getContext('2d');
-                if (window.riskGauge instanceof Chart) { window.riskGauge.destroy(); }
-                const gaugeText = {
-                    id: 'gaugeText',
-                    beforeDraw(chart) {
-                        const { ctx, chartArea: { top, width, height } } = chart;
-                        ctx.save();
-                        ctx.fillStyle = document.body.classList.contains('dark-mode') ? '#e4e6eb' : '#343a40';
-                        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-                        ctx.font = 'bold 32px Inter';
-                        ctx.fillText(`${Math.round(score)}%`, width / 2, top + (height / 1.5) + 10);
-                        ctx.restore();
-                    }
-                };
+                const colors = getColors();
+
+                if (window.riskGauge instanceof Chart) window.riskGauge.destroy();
+
+                // Gradient based on score
+                let gradient = ctx.createLinearGradient(0, 0, 160, 0);
+                if (score > 50) {
+                    gradient.addColorStop(0, '#ef4444');
+                    gradient.addColorStop(1, '#f87171');
+                } else if (score > 20) {
+                    gradient.addColorStop(0, '#f97316');
+                    gradient.addColorStop(1, '#fb923c');
+                } else {
+                    gradient.addColorStop(0, '#22c55e');
+                    gradient.addColorStop(1, '#4ade80');
+                }
+
                 window.riskGauge = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
-                        datasets: [{ data: [score, 100 - score], backgroundColor: [ score > 50 ? '#c92a2a' : (score > 20 ? '#f08c00' : '#2f9e44'), '#e9ecef' ], borderWidth: 0, }]
+                        datasets: [{
+                            data: [score, 100 - score],
+                            backgroundColor: [gradient, colors.track],
+                            borderWidth: 0,
+                            borderRadius: 6
+                        }]
                     },
-                    options: { rotation: -90, circumference: 180, cutout: '70%', plugins: { tooltip: { enabled: false }, legend: { display: false } }, animation: { animateRotate: false } },
-                    plugins: [gaugeText]
+                    options: {
+                        rotation: -90,
+                        circumference: 180,
+                        cutout: '78%',
+                        plugins: { tooltip: { enabled: false }, legend: { display: false } },
+                        animation: { duration: 800, easing: 'easeOutQuart' }
+                    },
+                    plugins: [{
+                        id: 'gaugeText',
+                        beforeDraw(chart) {
+                            const { ctx, chartArea: { top, width, height } } = chart;
+                            ctx.save();
+                            ctx.fillStyle = getColors().text;
+                            ctx.textAlign = 'center';
+                            ctx.font = '700 26px Space Grotesk';
+                            ctx.fillText(`${Math.round(score)}%`, width / 2, top + height / 1.4);
+                            ctx.font = '500 10px Space Grotesk';
+                            ctx.fillStyle = getColors().muted;
+                            ctx.fillText('Risk Score', width / 2, top + height / 1.4 + 16);
+                            ctx.restore();
+                        }
+                    }]
                 });
             }
 
+            // Radar with filled areas
             function createOrUpdateRadarChart(labels, applicantData, successfulAvg, failedAvg) {
                 const ctx = document.getElementById('peerRadarChart').getContext('2d');
-                if (window.peerRadarChart instanceof Chart) { window.peerRadarChart.destroy(); }
+                const colors = getColors();
+
+                if (window.peerRadarChart instanceof Chart) window.peerRadarChart.destroy();
+
                 window.peerRadarChart = new Chart(ctx, {
                     type: 'radar',
                     data: {
                         labels: labels,
                         datasets: [
-                            { label: 'Your Application', data: applicantData, backgroundColor: 'rgba(0, 123, 255, 0.2)', borderColor: 'rgba(0, 123, 255, 1)', borderWidth: 2 },
-                            { label: 'Avg. Successful Loan', data: successfulAvg, backgroundColor: 'rgba(40, 167, 69, 0.2)', borderColor: 'rgba(40, 167, 69, 1)', borderWidth: 1 },
-                            { label: 'Avg. Failed Loan', data: failedAvg, backgroundColor: 'rgba(220, 53, 69, 0.2)', borderColor: 'rgba(220, 53, 69, 1)', borderWidth: 1 }
+                            {
+                                label: 'Your Application',
+                                data: applicantData,
+                                backgroundColor: 'rgba(218, 119, 86, 0.15)',
+                                borderColor: '#da7756',
+                                borderWidth: 2.5,
+                                pointBackgroundColor: '#da7756',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                pointRadius: 5
+                            },
+                            {
+                                label: 'Successful Loans',
+                                data: successfulAvg,
+                                backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                                borderColor: '#22c55e',
+                                borderWidth: 2,
+                                pointBackgroundColor: '#22c55e',
+                                pointRadius: 4
+                            },
+                            {
+                                label: 'Failed Loans',
+                                data: failedAvg,
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                borderColor: '#ef4444',
+                                borderWidth: 2,
+                                pointBackgroundColor: '#ef4444',
+                                pointRadius: 4
+                            }
                         ]
                     },
-                    options: { responsive: true, maintainAspectRatio: false, scales: { r: { beginAtZero: true } } }
-                });
-            }
-            
-            // ... MAIN API CALL FUNCTION ...
-            async function updatePrediction() {
-                loader.style.display = 'block';
-                resultsDashboard.style.display = 'none';
-
-                const payload = {};
-                const formElements = form.elements;
-                for (let i = 0; i < formElements.length; i++) {
-                    const element = formElements[i];
-                    if (element.name) {
-                        if (element.type === 'number' || element.type === 'range') {
-                            payload[element.name] = parseFloat(element.value) || 0;
-                        } else {
-                            payload[element.name] = element.value;
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    color: colors.text,
+                                    padding: 20,
+                                    usePointStyle: true,
+                                    pointStyle: 'circle',
+                                    font: { size: 12, weight: '500' }
+                                }
+                            }
+                        },
+                        scales: {
+                            r: {
+                                beginAtZero: true,
+                                grid: { color: colors.grid, lineWidth: 1 },
+                                angleLines: { color: colors.grid },
+                                pointLabels: { color: colors.text, font: { size: 12, weight: '500' } },
+                                ticks: { color: colors.muted, backdropColor: 'transparent', font: { size: 10 } }
+                            }
                         }
                     }
+                });
+            }
+
+            // Show/hide navigation based on results visibility
+            function updateNavVisibility(show) {
+                const isMobile = window.innerWidth <= 768;
+                if (show) {
+                    sidebar.style.display = isMobile ? 'none' : 'block';
+                    bottomNav.style.display = isMobile ? 'flex' : 'none';
+                } else {
+                    sidebar.style.display = 'none';
+                    bottomNav.style.display = 'none';
                 }
-                
+            }
+
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                if (resultsDashboard.style.display !== 'none') {
+                    updateNavVisibility(true);
+                }
+            });
+
+            // API Call
+            let isFirstLoad = true;
+            async function updatePrediction() {
+                mainContent.classList.add('loading');
+
+                const payload = {};
+                for (const el of form.elements) {
+                    if (el.name) {
+                        payload[el.name] = el.type === 'number' || el.type === 'range'
+                            ? parseFloat(el.value) || 0
+                            : el.value;
+                    }
+                }
+
                 try {
-                    const response = await fetch('/api/predict', {
+                    const res = await fetch('/api/predict', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
 
-                    if (!response.ok) {
-                        let errorMessage = `API Error: ${response.statusText}`;
-                        try {
-                            const errorData = await response.json();
-                            errorMessage = errorData.detail ? `${errorData.detail[0].loc[1]}: ${errorData.detail[0].msg}` : (errorData.error || errorMessage);
-                        } catch (e) {
-                            errorMessage = `Server Error: Received non-JSON response. Check terminal for crash logs.`;
-                        }
-                        throw new Error(errorMessage);
+                    if (!res.ok) {
+                        const err = await res.json().catch(() => ({}));
+                        throw new Error(err.detail?.[0]?.msg || err.error || res.statusText);
                     }
-                    const data = await response.json();
-                    
-                    resultsDashboard.style.display = 'grid';
-                    createOrUpdateGauge(data.risk_score); 
+
+                    const data = await res.json();
+                    lastChartData = data; // Store for theme toggle
+
+                    if (isFirstLoad) {
+                        resultsDashboard.style.display = 'flex';
+                        updateNavVisibility(true);
+                        isFirstLoad = false;
+                    }
+
+                    createOrUpdateGauge(data.risk_score);
+
                     recommendationEl.textContent = data.recommendation;
                     recommendationEl.className = `recommendation ${data.risk_class}`;
 
-                    let explanationHtml = '<ul>';
-                    data.explanation.forEach(item => {
-                        if (item.impact === "neutral") {
-                            explanationHtml += `<li>${item.feature}</li>`;
-                        } else {
-                            const icon = item.impact === 'increases' ? '🔺' : '✅';
-                            explanationHtml += `<li class="${item.impact}">${icon} <strong>${item.feature.replace(/_/g, ' ')}</strong> ${item.impact} risk.</li>`;
-                        }
-                    });
-                    explanationHtml += '</ul>';
-                    explanationTextEl.innerHTML = explanationHtml;
+                    explanationTextEl.innerHTML = '<ul>' + data.explanation.map(item => {
+                        if (item.impact === 'neutral') return `<li>${item.feature}</li>`;
+                        const arrow = item.impact === 'increases' ? '&#8593;' : '&#8595;';
+                        return `<li class="${item.impact}"><span class="icon">${arrow}</span><span><strong>${item.feature.replace(/_/g, ' ')}</strong> ${item.impact} risk</span></li>`;
+                    }).join('') + '</ul>';
 
                     document.getElementById('total-principal').textContent = `$${parseFloat(payload.loan_amnt).toLocaleString()}`;
-                    document.getElementById('total-interest').textContent = `$${data.amortization.total_interest.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                    document.getElementById('total-cost').textContent = `$${data.amortization.total_paid.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
-                    const tableBody = document.querySelector("#amortization-table tbody");
-                    tableBody.innerHTML = '';
-                    data.amortization.schedule.forEach(row => {
-                        tableBody.innerHTML += `<tr><td>${row.month}</td><td>${row.payment.toFixed(2)}</td><td>${row.principal.toFixed(2)}</td><td>${row.interest.toFixed(2)}</td><td>${row.balance.toFixed(2)}</td></tr>`;
-                    });
+                    document.getElementById('total-interest').textContent = `$${data.amortization.total_interest.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+                    document.getElementById('total-cost').textContent = `$${data.amortization.total_paid.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}`;
+
+                    const tbody = document.querySelector('#amortization-table tbody');
+                    tbody.innerHTML = data.amortization.schedule.map(r => `
+                        <tr>
+                            <td>${r.month}</td>
+                            <td>$${r.payment.toFixed(2)}</td>
+                            <td>$${r.principal.toFixed(2)}</td>
+                            <td>$${r.interest.toFixed(2)}</td>
+                            <td>$${r.balance.toLocaleString(undefined, {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+                        </tr>
+                    `).join('');
 
                     if (data.peer_comparison) {
                         document.getElementById('peer-grade').textContent = payload.grade;
-                        const applicantData = [ payload.dti, payload.loan_amnt / (payload.annual_inc + 1), payload.credit_history_length ];
-                        createOrUpdateRadarChart(data.peer_comparison.labels, applicantData, data.peer_comparison.successful_avg, data.peer_comparison.failed_avg);
+                        // Scale loan_to_income by 10 to make it visible (it's ~0.6 while others are ~15)
+                        const loanToIncomeScale = 10;
+                        const applicantLoanToIncome = (payload.loan_amnt / (payload.annual_inc + 1)) * loanToIncomeScale;
+                        const successfulAvg = [...data.peer_comparison.successful_avg];
+                        const failedAvg = [...data.peer_comparison.failed_avg];
+                        successfulAvg[1] *= loanToIncomeScale;
+                        failedAvg[1] *= loanToIncomeScale;
+
+                        createOrUpdateRadarChart(
+                            data.peer_comparison.labels,
+                            [payload.dti, applicantLoanToIncome, payload.credit_history_length],
+                            successfulAvg,
+                            failedAvg
+                        );
                     }
 
-                    const breakevenCard = document.getElementById('breakeven-card');
-                    const breakevenText = document.getElementById('breakeven-text');
-                    if (data.breakeven_analysis && data.breakeven_analysis.length > 0) {
-                        let breakevenHtml = '<ul>';
-                        data.breakeven_analysis.forEach(suggestion => { breakevenHtml += `<li>💡 ${suggestion}</li>`; });
-                        breakevenHtml += '</ul>';
-                        breakevenText.innerHTML = breakevenHtml;
-                        breakevenCard.style.display = 'block';
+                    const actionsSection = document.getElementById('section-actions');
+                    const actionsNavItem = document.querySelector('[data-section="section-actions"]');
+                    const bottomActionsNavItem = bottomNav.querySelector('[data-section="section-actions"]');
+
+                    if (data.breakeven_analysis?.length) {
+                        document.getElementById('breakeven-text').innerHTML = '<ul>' +
+                            data.breakeven_analysis.map(s => `<li><span class="icon">&#10140;</span><span>${s}</span></li>`).join('') + '</ul>';
+                        actionsSection.style.display = 'block';
+                        if (actionsNavItem) actionsNavItem.style.display = 'flex';
+                        if (bottomActionsNavItem) bottomActionsNavItem.style.display = 'flex';
                     } else {
-                        breakevenCard.style.display = 'none';
+                        actionsSection.style.display = 'none';
+                        if (actionsNavItem) actionsNavItem.style.display = 'none';
+                        if (bottomActionsNavItem) bottomActionsNavItem.style.display = 'none';
                     }
-                } catch (error) {
-                    resultsDashboard.style.display = 'grid';
+
+                } catch (err) {
+                    if (isFirstLoad) {
+                        resultsDashboard.style.display = 'flex';
+                        updateNavVisibility(true);
+                        isFirstLoad = false;
+                    }
                     createOrUpdateGauge(0);
                     explanationTextEl.innerHTML = '';
-                    document.getElementById('breakeven-card').style.display = 'none';
-                    recommendationEl.textContent = `Error: ${error.message}`;
+                    document.getElementById('section-actions').style.display = 'none';
+                    recommendationEl.textContent = `Error: ${err.message}`;
                     recommendationEl.className = 'recommendation high-risk';
                 } finally {
-                    loader.style.display = 'none';
+                    mainContent.classList.remove('loading');
                 }
             }
-            
-            // ... EVENT LISTENERS ...
-            function handleInputChange() { clearTimeout(requestDebounce); requestDebounce = setTimeout(updatePrediction, 400); }
+
+            // Events
+            function handleChange() {
+                clearTimeout(requestDebounce);
+                requestDebounce = setTimeout(updatePrediction, 300);
+            }
+
+            // Slider fill gradient
+            function updateSliderFill(slider) {
+                const min = parseFloat(slider.min);
+                const max = parseFloat(slider.max);
+                const val = parseFloat(slider.value);
+                const percentage = ((val - min) / (max - min)) * 100;
+                const isDark = document.body.classList.contains('dark-mode');
+                const trackColor = isDark ? '#333330' : '#e8e4df';
+                slider.style.background = `linear-gradient(to right, #da7756 0%, #da7756 ${percentage}%, ${trackColor} ${percentage}%, ${trackColor} 100%)`;
+            }
+
             document.querySelectorAll('.slider').forEach(slider => {
-                const valSpan = document.getElementById(`${slider.id}_val`);
-                valSpan.textContent = parseFloat(slider.value).toLocaleString('en-US');
-                slider.addEventListener('input', (e) => {
-                    valSpan.textContent = parseFloat(e.target.value).toLocaleString('en-US');
-                    handleInputChange();
+                const span = document.getElementById(`${slider.id}_val`);
+                span.textContent = parseFloat(slider.value).toLocaleString();
+                updateSliderFill(slider);
+                slider.addEventListener('input', e => {
+                    span.textContent = parseFloat(e.target.value).toLocaleString();
+                    updateSliderFill(e.target);
+                    handleChange();
                 });
             });
-            document.querySelectorAll('select, input[type="number"]').forEach(el => {
-                el.addEventListener('change', handleInputChange);
+
+            // Update slider fills and charts when theme changes
+            themeToggle.addEventListener('change', () => {
+                setTimeout(() => {
+                    document.querySelectorAll('.slider').forEach(updateSliderFill);
+                    // Recreate charts with new colors
+                    if (lastChartData) {
+                        createOrUpdateGauge(lastChartData.risk_score);
+                        if (lastChartData.peer_comparison) {
+                            const payload = {};
+                            for (const el of form.elements) {
+                                if (el.name) {
+                                    payload[el.name] = el.type === 'number' || el.type === 'range'
+                                        ? parseFloat(el.value) || 0
+                                        : el.value;
+                                }
+                            }
+                            const loanToIncomeScale = 10;
+                            const applicantLoanToIncome = (payload.loan_amnt / (payload.annual_inc + 1)) * loanToIncomeScale;
+                            const successfulAvg = [...lastChartData.peer_comparison.successful_avg];
+                            const failedAvg = [...lastChartData.peer_comparison.failed_avg];
+                            successfulAvg[1] *= loanToIncomeScale;
+                            failedAvg[1] *= loanToIncomeScale;
+
+                            createOrUpdateRadarChart(
+                                lastChartData.peer_comparison.labels,
+                                [payload.dti, applicantLoanToIncome, payload.credit_history_length],
+                                successfulAvg,
+                                failedAvg
+                            );
+                        }
+                    }
+                }, 50);
             });
-            
-            window.addEventListener('load', updatePrediction);
+
+            document.querySelectorAll('input[type="number"]').forEach(el => {
+                el.addEventListener('change', handleChange);
+            });
+
+            // Custom Dropdowns
+            document.querySelectorAll('select').forEach(select => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'custom-select';
+
+                const trigger = document.createElement('div');
+                trigger.className = 'custom-select-trigger';
+                trigger.textContent = select.options[select.selectedIndex].text;
+
+                const options = document.createElement('div');
+                options.className = 'custom-select-options';
+
+                Array.from(select.options).forEach((option, index) => {
+                    const customOption = document.createElement('div');
+                    customOption.className = 'custom-select-option' + (index === select.selectedIndex ? ' selected' : '');
+                    customOption.textContent = option.text;
+                    customOption.dataset.value = option.value;
+
+                    customOption.addEventListener('click', () => {
+                        select.value = option.value;
+                        trigger.textContent = option.text;
+                        options.querySelectorAll('.custom-select-option').forEach(o => o.classList.remove('selected'));
+                        customOption.classList.add('selected');
+                        wrapper.classList.remove('open');
+                        handleChange();
+                    });
+
+                    options.appendChild(customOption);
+                });
+
+                trigger.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.custom-select.open').forEach(s => {
+                        if (s !== wrapper) s.classList.remove('open');
+                    });
+                    wrapper.classList.toggle('open');
+                });
+
+                select.style.display = 'none';
+                wrapper.appendChild(trigger);
+                wrapper.appendChild(options);
+                select.parentNode.appendChild(wrapper);
+            });
+
+            // Close dropdowns on outside click
+            document.addEventListener('click', () => {
+                document.querySelectorAll('.custom-select.open').forEach(s => s.classList.remove('open'));
+            });
+
+            // Scroll Navigation
+            function scrollToSection(sectionId) {
+                const section = document.getElementById(sectionId);
+                if (section) {
+                    const offset = 24; // Top padding
+                    const top = section.getBoundingClientRect().top + window.pageYOffset - offset;
+                    window.scrollTo({ top, behavior: 'smooth' });
+                }
+            }
+
+            // Handle nav clicks
+            document.querySelectorAll('.sidebar-nav-item, .bottom-nav-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const sectionId = item.dataset.section;
+                    scrollToSection(sectionId);
+
+                    // Update active states
+                    document.querySelectorAll('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
+                    document.querySelectorAll('.bottom-nav-item').forEach(n => n.classList.remove('active'));
+                    document.querySelectorAll(`[data-section="${sectionId}"]`).forEach(n => n.classList.add('active'));
+                });
+            });
+
+            // Scroll Spy
+            function updateActiveNavOnScroll() {
+                const sections = document.querySelectorAll('.result-section');
+                const scrollPosition = window.scrollY + 100;
+
+                sections.forEach(section => {
+                    if (section.style.display === 'none') return;
+
+                    const sectionTop = section.offsetTop;
+                    const sectionHeight = section.offsetHeight;
+
+                    if (scrollPosition >= sectionTop && scrollPosition < sectionTop + sectionHeight) {
+                        const sectionId = section.id;
+                        document.querySelectorAll('.sidebar-nav-item').forEach(n => n.classList.remove('active'));
+                        document.querySelectorAll('.bottom-nav-item').forEach(n => n.classList.remove('active'));
+                        document.querySelectorAll(`[data-section="${sectionId}"]`).forEach(n => n.classList.add('active'));
+                    }
+                });
+            }
+
+            let scrollTimeout;
+            window.addEventListener('scroll', () => {
+                clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(updateActiveNavOnScroll, 50);
+            });
+
+            updatePrediction();
         });
     </script>
 </body>

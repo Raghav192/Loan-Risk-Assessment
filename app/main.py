@@ -23,10 +23,10 @@ try:
     explainer = joblib.load("models/shap_explainer.joblib")
     feature_names = joblib.load("models/processed_feature_names.joblib")
     df_sample = pd.read_csv("data/lending_club_accepted.csv", usecols=['grade', 'loan_status', 'dti', 'loan_amnt', 'annual_inc', 'issue_d', 'earliest_cr_line'], nrows=50000)
-    print("INFO:     ✅ Model components and data sample loaded successfully.")
+    print("INFO:     Model components and data sample loaded successfully.")
 except Exception as e:
     model_pipeline, explainer, feature_names, df_sample = None, None, None, None
-    print(f"FATAL:    ❌ Could not load files. Error: {e}")
+    print(f"FATAL:   Could not load files. Error: {e}")
 
 # --- Pydantic Models ---
 class LoanApplication(BaseModel):
@@ -55,7 +55,6 @@ FEATURE_ORDER = [
 
 # --- Helper Functions ---
 def calculate_amortization(principal, annual_rate, term_months):
-    # ... (This function remains unchanged)
     monthly_rate = (annual_rate / 100) / 12
     if monthly_rate == 0 or (1 + monthly_rate)**term_months == 1: return [], 0, principal
     monthly_payment = (principal * monthly_rate * (1 + monthly_rate)**term_months) / ((1 + monthly_rate)**term_months - 1)
@@ -70,7 +69,6 @@ def calculate_amortization(principal, annual_rate, term_months):
     return schedule, round(total_interest, 2), round(monthly_payment * term_months, 2)
 
 def get_peer_comparison(grade: str):
-    # ... (This function remains unchanged)
     if df_sample is None: return None
     peer_group = df_sample[df_sample['grade'] == grade].dropna()
     if len(peer_group) < 10: peer_group = df_sample.dropna()
@@ -108,7 +106,7 @@ def find_breakeven_points(input_dict: dict, threshold: float = 20.0):
             suggestions.append(f"Lower interest rate to {new_rate:.1f}%")
             break
             
-    # Suggestion 2: Reduce Loan Amount
+    
     for i in range(1, 20):
         temp_dict = input_dict.copy()
         new_amnt = temp_dict['loan_amnt'] * (1 - (i * 0.05))
@@ -161,15 +159,43 @@ async def api_predict(application: LoanApplication):
     try:
         processed_input = model_pipeline.named_steps['preprocessor'].transform(input_df)
         shap_values = explainer.shap_values(processed_input)
-        shap_df = pd.DataFrame({'feature': feature_names, 'shap_value': shap_values[0], 'feature_value': processed_input[0]})
+
+        # Handle both single output and multi-class output
+        if isinstance(shap_values, list):
+            # For binary classification, use class 1 (default/risk class)
+            shap_vals = shap_values[1][0] if len(shap_values) > 1 else shap_values[0][0]
+        else:
+            shap_vals = shap_values[0]
+
+        shap_df = pd.DataFrame({
+            'feature': feature_names,
+            'shap_value': shap_vals,
+            'feature_value': processed_input[0]
+        })
         shap_df_filtered = shap_df[shap_df['feature_value'] != 0].copy()
         shap_df_filtered['abs_shap'] = np.abs(shap_df_filtered['shap_value'])
         top_contributors = shap_df_filtered.sort_values(by='abs_shap', ascending=False).head(3)
+
         for _, row in top_contributors.iterrows():
-            explanation_data.append({"feature": row['feature'].split('__')[1], "impact": "increases" if float(row['shap_value']) > 0 else "decreases"})
+            feature_name = row['feature']
+            # Handle both prefixed and non-prefixed feature names
+            if '__' in feature_name:
+                feature_name = feature_name.split('__')[1]
+            explanation_data.append({
+                "feature": feature_name,
+                "impact": "increases" if float(row['shap_value']) > 0 else "decreases"
+            })
     except Exception as e:
         print(f"--- SHAP Explanation Generation Error: {e} ---")
-        explanation_data.append({"feature": "Explanation currently unavailable", "impact": "neutral"})
+        # Provide fallback explanations based on input values
+        if float(input_dict.get('int_rate', 0)) > 15:
+            explanation_data.append({"feature": "interest_rate", "impact": "increases"})
+        if float(input_dict.get('dti', 0)) > 20:
+            explanation_data.append({"feature": "debt_to_income", "impact": "increases"})
+        if float(input_dict.get('loan_to_income_ratio', 0)) > 0.5:
+            explanation_data.append({"feature": "loan_to_income", "impact": "increases"})
+        if not explanation_data:
+            explanation_data.append({"feature": "Unable to determine specific factors", "impact": "neutral"})
     
     amortization_schedule, total_interest, total_paid = calculate_amortization(application.loan_amnt, application.int_rate, term_in_months)
     peer_data = get_peer_comparison(application.grade)
