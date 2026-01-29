@@ -27,7 +27,6 @@
         </header>
 
         <div class="app-layout">
-            <!-- Sidebar Navigation -->
             <aside id="sidebar" class="sidebar">
                 <nav class="sidebar-nav">
                     <a href="#section-details" class="sidebar-nav-item active" data-section="section-details">
@@ -57,7 +56,6 @@
                 </nav>
             </aside>
 
-            <!-- Main Content -->
             <main class="main-content">
                 <section id="section-details" class="form-container card result-section">
                     <h2>Applicant Details <span class="badge">Live Preview</span></h2>
@@ -129,7 +127,6 @@
                 </section>
 
                 <div id="results-dashboard" class="results-sections">
-                    <!-- Main Grid: Score/Factors on left, Peer Comparison on right -->
                     <div class="results-grid-main">
                         <div class="results-left-col">
                             <section id="section-score" class="card result-section">
@@ -158,14 +155,12 @@
                         </section>
                     </div>
 
-                    <!-- Actions/Recommendations Section (full width when visible) -->
                     <section id="section-actions" class="card result-section" style="display: none;">
                         <h3>Recommendations</h3>
                         <p class="chart-subtitle">How to improve your risk profile</p>
                         <div id="breakeven-text" class="explanation-text-list"></div>
                     </section>
 
-                    <!-- Cost Breakdown (full width) -->
                     <section id="section-cost" class="card result-section">
                         <h3>Cost Breakdown</h3>
                         <div class="cost-layout">
@@ -203,7 +198,6 @@
             </main>
         </div>
 
-        <!-- Bottom Navigation (Mobile) -->
         <nav id="bottom-nav" class="bottom-nav" style="display: none;">
             <a href="#section-details" class="bottom-nav-item active" data-section="section-details">
                 <span class="nav-icon">&#9998;</span>
@@ -273,7 +267,6 @@
 
                 if (window.riskGauge instanceof Chart) window.riskGauge.destroy();
 
-                // Gradient based on score
                 let gradient = ctx.createLinearGradient(0, 0, 160, 0);
                 if (score > 50) {
                     gradient.addColorStop(0, '#ef4444');
@@ -391,12 +384,11 @@
                     }
                 });
             }
-
-            // Show/hide navigation based on results visibility
             function updateNavVisibility(show) {
                 const isMobile = window.innerWidth <= 768;
                 if (show) {
-                    sidebar.style.display = isMobile ? 'none' : 'block';
+                    sidebar.style.display = ''; 
+                    // Explicitly handle bottom nav for mobile logic
                     bottomNav.style.display = isMobile ? 'flex' : 'none';
                 } else {
                     sidebar.style.display = 'none';
@@ -438,11 +430,14 @@
                     }
 
                     const data = await res.json();
-                    lastChartData = data; // Store for theme toggle
+                    lastChartData = data; 
 
                     if (isFirstLoad) {
                         resultsDashboard.style.display = 'flex';
                         updateNavVisibility(true);
+                        
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+                        
                         isFirstLoad = false;
                     }
 
@@ -474,7 +469,6 @@
 
                     if (data.peer_comparison) {
                         document.getElementById('peer-grade').textContent = payload.grade;
-                        // Scale loan_to_income by 10 to make it visible (it's ~0.6 while others are ~15)
                         const loanToIncomeScale = 10;
                         const applicantLoanToIncome = (payload.loan_amnt / (payload.annual_inc + 1)) * loanToIncomeScale;
                         const successfulAvg = [...data.peer_comparison.successful_avg];
@@ -510,6 +504,8 @@
                     if (isFirstLoad) {
                         resultsDashboard.style.display = 'flex';
                         updateNavVisibility(true);
+                        // Apply same fix for error state to ensure layout is ready
+                        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
                         isFirstLoad = false;
                     }
                     createOrUpdateGauge(0);
@@ -553,8 +549,7 @@
             // Update slider fills and charts when theme changes
             themeToggle.addEventListener('change', () => {
                 setTimeout(() => {
-                    document.querySelectorAll('.slider').forEach(updateSliderFill);
-                    // Recreate charts with new colors
+                    document.querySelectorAll('.slider').forEach(updateSliderFill);s
                     if (lastChartData) {
                         createOrUpdateGauge(lastChartData.risk_score);
                         if (lastChartData.peer_comparison) {
@@ -690,5 +685,5 @@
             updatePrediction();
         });
     </script>
-</body>
+</body> 
 </html>
