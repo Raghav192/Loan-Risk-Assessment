@@ -14,12 +14,13 @@ COPY requirements.txt .
 # Install the dependencies
 RUN pip install --no-cache-dir --upgrade pip -r requirements.txt
 
-# Stage 4: Copy the application code and models 
-# Copy the application code, trained models, and templates into the container
+# Stage 4: Copy the application code, models, and data
 COPY ./app /app/app
 COPY ./models /app/models
+COPY ./data /app/data
 
 # Stage 5: Expose port and run the application
+# Render provides the PORT environment variable
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

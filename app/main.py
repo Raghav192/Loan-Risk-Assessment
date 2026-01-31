@@ -22,7 +22,7 @@ try:
     model_pipeline = joblib.load("models/best_model.joblib")
     explainer = joblib.load("models/shap_explainer.joblib")
     feature_names = joblib.load("models/processed_feature_names.joblib")
-    df_sample = pd.read_csv("data/lending_club_accepted.csv", usecols=['grade', 'loan_status', 'dti', 'loan_amnt', 'annual_inc', 'issue_d', 'earliest_cr_line'], nrows=50000)
+    df_sample = pd.read_csv("data/lending_club_sample.csv", usecols=['grade', 'loan_status', 'dti', 'loan_amnt', 'annual_inc', 'issue_d', 'earliest_cr_line'], nrows=50000)
     print("INFO:     Model components and data sample loaded successfully.")
 except Exception as e:
     model_pipeline, explainer, feature_names, df_sample = None, None, None, None
