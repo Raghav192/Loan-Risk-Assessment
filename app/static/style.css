@@ -36,7 +36,9 @@ body.dark-mode {
     --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-*, *::before, *::after {
+*,
+*::before,
+*::after {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
@@ -279,7 +281,9 @@ body.dark-mode .bottom-nav {
     transform: scale(0.96);
 }
 
-.theme-switch input { display: none; }
+.theme-switch input {
+    display: none;
+}
 
 .theme-switch .toggle-icon {
     width: 36px;
@@ -303,12 +307,12 @@ body.dark-mode .bottom-nav {
     background: transparent;
 }
 
-.theme-switch input:checked ~ .toggle-icon.sun {
+.theme-switch input:checked~.toggle-icon.sun {
     background: transparent;
     color: var(--text-muted);
 }
 
-.theme-switch input:checked ~ .toggle-icon.moon {
+.theme-switch input:checked~.toggle-icon.moon {
     background: var(--accent-light);
     color: var(--accent);
 }
@@ -326,7 +330,8 @@ body.dark-mode .bottom-nav {
     box-shadow: var(--shadow-hover);
 }
 
-.card h2, .card h3 {
+.card h2,
+.card h3 {
     font-size: 0.9375rem;
     font-weight: 600;
     color: var(--text-primary);
@@ -336,7 +341,8 @@ body.dark-mode .bottom-nav {
     justify-content: space-between;
 }
 
-.card h2 .badge, .card h3 .badge {
+.card h2 .badge,
+.card h3 .badge {
     font-size: 0.75rem;
     font-weight: 500;
     padding: 6px 12px;
@@ -553,8 +559,15 @@ select {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(12px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 
@@ -780,7 +793,9 @@ tbody tr:hover td {
 }
 
 @keyframes spin {
-    to { transform: rotate(360deg); }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 
@@ -832,7 +847,8 @@ tbody tr:hover td {
 @media (max-width: 768px) {
     .container {
         padding: 24px 16px;
-        padding-bottom: 100px; /* Space for bottom nav */
+        padding-bottom: 100px;
+        /* Space for bottom nav */
     }
 
     .app-layout {
@@ -886,20 +902,20 @@ tbody tr:hover td {
     }
 
     .main-header {
-        flex-direction: row; 
-        align-items: center; 
+        flex-direction: row;
+        align-items: center;
         justify-content: space-between;
         gap: 12px;
     }
 
-    .main-header > div:first-child {
+    .main-header>div:first-child {
         flex: 1;
-        min-width: 0; 
+        min-width: 0;
     }
 
     .theme-switch-wrapper {
         align-self: center;
-        flex-shrink: 0; 
+        flex-shrink: 0;
         margin-left: auto;
     }
 }

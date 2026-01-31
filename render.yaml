@@ -3,7 +3,7 @@ services:
     name: financial-risk-assessor
     env: docker
     plan: free
-    region: oregon # or your preferred region
+    region: frankfurt
     envVars:
       - key: PORT
         value: 10000
