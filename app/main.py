@@ -16,6 +16,15 @@ app = FastAPI(title="Risk API")
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
+# Define feature order first so it's global and available for initialization
+FEATURE_ORDER = [
+    'loan_amnt', 'term', 'int_rate', 'installment', 'grade', 'sub_grade', 'emp_length',
+    'home_ownership', 'annual_inc', 'verification_status', 'purpose', 'dti', 'open_acc',
+    'pub_rec', 'revol_bal', 'revol_util', 'total_acc', 'initial_list_status',
+    'application_type', 'mort_acc', 'pub_rec_bankruptcies', 'credit_history_length',
+    'loan_to_income', 'interest_to_income', 'utilization_efficiency'
+]
+
 # Initialize global components
 model_pipeline = None
 explainer = None
@@ -23,37 +32,23 @@ feature_names = None
 df_sample = None
 
 try:
-    # Load core model components
     model_pipeline = joblib.load("models/best_model.joblib")
     feature_names = joblib.load("models/processed_feature_names.joblib")
-    
-    # Load sample for peer comparison and SHAP background
     df_sample = pd.read_csv("data/lending_club_sample.csv")
     
-    # Extract pipeline steps for SHAP
     classifier = model_pipeline.named_steps['classifier']
     preprocessor = model_pipeline.named_steps['preprocessor']
     
-    # CRITICAL: Initialize TreeExplainer at runtime to avoid deserialization errors in cloud
-    # We use a small representative sample as the background distribution
-    
-    # Engineer features for the sample to match model expectations
+    # Prepare background data for SHAP using the same engineering as the main pipeline
     sample_prep = df_sample.dropna(subset=['issue_d', 'earliest_cr_line', 'annual_inc']).head(100).copy()
-    
-    # Process emp_length like in training
     sample_prep['emp_length'] = sample_prep['emp_length'].str.extract(r'(\d+)').astype(float).fillna(0)
-    
-    # Process time features
     sample_prep['earliest_cr_line'] = pd.to_datetime(sample_prep['earliest_cr_line'], errors='coerce')
     sample_prep['issue_d'] = pd.to_datetime(sample_prep['issue_d'], errors='coerce')
     sample_prep['credit_history_length'] = (sample_prep['issue_d'] - sample_prep['earliest_cr_line']).dt.days / 365.25
-    
-    # Engineer ratios
     sample_prep['loan_to_income'] = sample_prep['loan_amnt'] / (sample_prep['annual_inc'] + 1)
     sample_prep['interest_to_income'] = (sample_prep['installment'] * 12) / (sample_prep['annual_inc'] + 1)
     sample_prep['utilization_efficiency'] = sample_prep['revol_util'] / (sample_prep['open_acc'] + 1)
     
-    # Standardize columns for preprocessor
     background_data = preprocessor.transform(sample_prep[FEATURE_ORDER])
     explainer = shap.TreeExplainer(classifier, background_data, feature_perturbation="interventional")
     
@@ -84,14 +79,6 @@ class LoanApplication(BaseModel):
     mort_acc: float = 2.0
     pub_rec_bankruptcies: float = 0.0
 
-FEATURE_ORDER = [
-    'loan_amnt', 'term', 'int_rate', 'installment', 'grade', 'sub_grade', 'emp_length',
-    'home_ownership', 'annual_inc', 'verification_status', 'purpose', 'dti', 'open_acc',
-    'pub_rec', 'revol_bal', 'revol_util', 'total_acc', 'initial_list_status',
-    'application_type', 'mort_acc', 'pub_rec_bankruptcies', 'credit_history_length',
-    'loan_to_income', 'interest_to_income', 'utilization_efficiency'
-]
-
 def calculate_amortization(principal, annual_rate, term_months):
     rate = (annual_rate / 100) / 12
     if rate <= 0: return [], 0, principal
@@ -115,8 +102,9 @@ def calculate_amortization(principal, annual_rate, term_months):
 def get_comparison_metrics(grade: str):
     if df_sample is None: return None
     
-    subset = df_sample[df_sample['grade'] == grade].dropna()
-    if len(subset) < 10: subset = df_sample.dropna()
+    comp_cols = ['dti', 'loan_amnt', 'annual_inc', 'issue_d', 'earliest_cr_line', 'loan_status']
+    subset = df_sample[df_sample['grade'] == grade].dropna(subset=comp_cols)
+    if len(subset) < 10: subset = df_sample.dropna(subset=comp_cols)
     
     subset['loan_to_income'] = subset['loan_amnt'] / (subset['annual_inc'] + 1)
     subset['credit_history_length'] = (pd.to_datetime(subset['issue_d'], errors='coerce') - pd.to_datetime(subset['earliest_cr_line'], errors='coerce')).dt.days / 365.25
@@ -128,8 +116,8 @@ def get_comparison_metrics(grade: str):
         
     return {
         "labels": ["DTI", "Loan/Income", "Credit History"],
-        "successful_avg": [round(success['dti'].mean(), 2), round(success['loan_to_income'].mean(), 2), round(success['credit_history_length'].mean(), 2)],
-        "failed_avg": [round(failure['dti'].mean(), 2), round(failure['loan_to_income'].mean(), 2), round(failure['credit_history_length'].mean(), 2)]
+        "successful_avg": [float(round(success['dti'].mean(), 2)), float(round(success['loan_to_income'].mean(), 2)), float(round(success['credit_history_length'].mean(), 2))],
+        "failed_avg": [float(round(failure['dti'].mean(), 2)), float(round(failure['loan_to_income'].mean(), 2)), float(round(failure['credit_history_length'].mean(), 2))]
     }
 
 def find_optimization_targets(input_data: dict, threshold: float = 20.0):
@@ -155,7 +143,7 @@ def find_optimization_targets(input_data: dict, threshold: float = 20.0):
         test_data['loan_amnt'] *= (1 - (i * 0.1))
         if test_data['loan_amnt'] < 1000: break
         
-        test_data['loan_to_income_ratio'] = test_data['loan_amnt'] / (test_data['annual_inc'] + 1)
+        test_data['loan_to_income'] = test_data['loan_amnt'] / (test_data['annual_inc'] + 1)
         r, n = (test_data['int_rate'] / 100) / 12, int(test_data['term'].strip().split(" ")[0])
         test_data['installment'] = (test_data['loan_amnt'] * r * (1+r)**n) / ((1+r)**n - 1) if r > 0 else test_data['loan_amnt']/n
         
@@ -191,7 +179,6 @@ async def predict(app_in: LoanApplication):
     try:
         processed = model_pipeline.named_steps['preprocessor'].transform(df_in)
         shap_vals = explainer.shap_values(processed)
-        # Structural check for SHAP output compatibility
         contribution = shap_vals[1][0] if (isinstance(shap_vals, list) and len(shap_vals) > 1) else (shap_vals[0] if not isinstance(shap_vals, list) else shap_vals[0][0])
         
         impact = pd.DataFrame({'feature': feature_names, 'shap': contribution, 'val': processed[0]})
@@ -206,7 +193,7 @@ async def predict(app_in: LoanApplication):
         if not factors: factors.append({"feature": "credit_factors", "impact": "neutral"})
     
     schedule, total_int, total_pmt = calculate_amortization(p, app_in.int_rate, months)
-    risk_score = proba * 100
+    risk_score = float(proba * 100)
     
     if risk_score > 50: label, cls = "High Risk", "high-risk"
     elif risk_score > 20: label, cls = "Medium Risk", "medium-risk"

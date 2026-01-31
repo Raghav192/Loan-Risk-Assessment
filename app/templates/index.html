@@ -556,7 +556,7 @@
             // Update slider fills and charts when theme changes
             themeToggle.addEventListener('change', () => {
                 setTimeout(() => {
-                    document.querySelectorAll('.slider').forEach(updateSliderFill); s
+                    document.querySelectorAll('.slider').forEach(updateSliderFill);
                     if (lastChartData) {
                         createOrUpdateGauge(lastChartData.risk_score);
                         if (lastChartData.peer_comparison) {
