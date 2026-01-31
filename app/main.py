@@ -36,7 +36,25 @@ try:
     
     # CRITICAL: Initialize TreeExplainer at runtime to avoid deserialization errors in cloud
     # We use a small representative sample as the background distribution
-    background_data = preprocessor.transform(df_sample.dropna().head(100))
+    
+    # Engineer features for the sample to match model expectations
+    sample_prep = df_sample.dropna(subset=['issue_d', 'earliest_cr_line', 'annual_inc']).head(100).copy()
+    
+    # Process emp_length like in training
+    sample_prep['emp_length'] = sample_prep['emp_length'].str.extract(r'(\d+)').astype(float).fillna(0)
+    
+    # Process time features
+    sample_prep['earliest_cr_line'] = pd.to_datetime(sample_prep['earliest_cr_line'], errors='coerce')
+    sample_prep['issue_d'] = pd.to_datetime(sample_prep['issue_d'], errors='coerce')
+    sample_prep['credit_history_length'] = (sample_prep['issue_d'] - sample_prep['earliest_cr_line']).dt.days / 365.25
+    
+    # Engineer ratios
+    sample_prep['loan_to_income'] = sample_prep['loan_amnt'] / (sample_prep['annual_inc'] + 1)
+    sample_prep['interest_to_income'] = (sample_prep['installment'] * 12) / (sample_prep['annual_inc'] + 1)
+    sample_prep['utilization_efficiency'] = sample_prep['revol_util'] / (sample_prep['open_acc'] + 1)
+    
+    # Standardize columns for preprocessor
+    background_data = preprocessor.transform(sample_prep[FEATURE_ORDER])
     explainer = shap.TreeExplainer(classifier, background_data, feature_perturbation="interventional")
     
     print("Services initialized successfully.")
@@ -71,7 +89,7 @@ FEATURE_ORDER = [
     'home_ownership', 'annual_inc', 'verification_status', 'purpose', 'dti', 'open_acc',
     'pub_rec', 'revol_bal', 'revol_util', 'total_acc', 'initial_list_status',
     'application_type', 'mort_acc', 'pub_rec_bankruptcies', 'credit_history_length',
-    'loan_to_income_ratio', 'interest_to_income_ratio', 'revol_util_to_open_acc'
+    'loan_to_income', 'interest_to_income', 'utilization_efficiency'
 ]
 
 def calculate_amortization(principal, annual_rate, term_months):
@@ -162,9 +180,9 @@ async def predict(app_in: LoanApplication):
     r, p, n = (app_in.int_rate / 100) / 12, app_in.loan_amnt, months
     
     data['installment'] = (p * r * (1+r)**n) / ((1+r)**n - 1) if r > 0 else p/n
-    data['loan_to_income_ratio'] = p / (app_in.annual_inc + 1)
-    data['interest_to_income_ratio'] = (data['installment'] * 12) / (app_in.annual_inc + 1)
-    data['revol_util_to_open_acc'] = app_in.revol_util / (app_in.open_acc + 1)
+    data['loan_to_income'] = p / (app_in.annual_inc + 1)
+    data['interest_to_income'] = (data['installment'] * 12) / (app_in.annual_inc + 1)
+    data['utilization_efficiency'] = app_in.revol_util / (app_in.open_acc + 1)
     
     df_in = pd.DataFrame([data], columns=FEATURE_ORDER)
     proba = model_pipeline.predict_proba(df_in)[0][1]
